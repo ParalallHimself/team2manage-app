@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Team2Manage CRM</title>
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  overflow: hidden; /* Prevents scrollbars on the splash screen */
+  user-select: none; /* Prevents users from highlighting text */
+  cursor: default;
+}
+
+/* BACKGROUND */
+.background {
+  height: 100%;
+  background: linear-gradient(135deg, #2C317C, #1F2933);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Make region draggable so user can move the splash screen if needed */
+  -webkit-app-region: drag;
+}
+
+/* CARD */
+.card {
+  width: 920px;
+  height: 520px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow:
+    0 60px 120px rgba(0,0,0,0.35),
+    0 10px 30px rgba(0,0,0,0.2);
+  position: relative;
+  animation: settle 2.2s cubic-bezier(.22,.61,.36,1) forwards;
+  /* Disable drag for inner elements so buttons/text interact normally */
+  -webkit-app-region: no-drag;
+}
+
+/* LOGO - FIXED TO PREVENT CLIPPING */
+.logo {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  height: 50px;  /* Fixed height to fit in the header space */
+  width: auto;   /* Maintains aspect ratio */
+  object-fit: contain;
+  z-index: 10;
+}
+
+/* DASHBOARD */
+.dashboard {
+  position: absolute;
+  top: 92px;
+  left: 28px;
+  right: 28px;
+  bottom: 96px;
+  background: #F9FAFB;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar { background: #F3F4F6; }
+
+/* CONTENT */
+.content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* STATS */
+.stats { display: flex; gap: 16px; }
+
+.stat {
+  flex: 1;
+  height: 84px;
+  border-radius: 12px;
+  background: #E5E7EB;
+  position: relative;
+  overflow: hidden;
+}
+
+/* CHART */
+.chart {
+  flex: 1;
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* SKELETON SHIMMER */
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.5),
+    transparent
+  );
+  animation: shimmer 1.8s infinite;
+}
+
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* CHART SVG */
+svg { width: 100%; height: 100%; }
+
+.line {
+  fill: none;
+  stroke: #2F80ED;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawLine 2s ease forwards;
+}
+
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+/* STATUS */
+.status-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+/* LOADER */
+.loader {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 4px;
+  background: #E5E7EB;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.loader::after {
+  content: "";
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #2F80ED, #2ED47A);
+  animation: progress 1.8s infinite;
+}
+
+@keyframes progress {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(260%); }
+}
+
+/* ENTRY */
+@keyframes settle {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="background">
+  <div class="card">
+
+    <img src="logo.png" class="logo" alt="Team2Manage Logo" />
+
+    <div class="dashboard">
+      <div class="sidebar"></div>
+
+      <div class="content">
+        <div class="stats">
+          <div class="stat skeleton"></div>
+          <div class="stat skeleton"></div>
+          <div class="stat skeleton"></div>
+        </div>
+
+        <div class="chart">
+          <svg viewBox="0 0 400 160">
+            <path class="line" d="M10 120 L80 80 L150 100 L220 60 L300 90 L380 40" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-text" id="status">Initializing…</div>
+    <div class="loader"></div>
+
+  </div>
+</div>
+
+<script>
+// --- TAURI CONFIGURATION ---
+// We try to access the Tauri invoke function. 
+// If it's missing (e.g., opened in normal Chrome), we mock it so the code doesn't crash.
+const invoke = window.__TAURI__ ? window.__TAURI__.core.invoke : async () => console.log("Mock Close");
+
+const status = document.getElementById("status");
+const stages = [
+  "Initializing…",
+  "Loading data…",
+  "Preparing dashboards…",
+  "Finalizing workspace…"
+];
+
+let stage = 0;
+
+function advanceStage() {
+  if (stage < stages.length) {
+    status.textContent = stages[stage];
+    stage++;
+  } else {
+    // 1. Stop the loop
+    clearInterval(intervalId);
+    
+    // 2. Tell Rust to close this window and open the main app
+    invoke('close_splashscreen')
+      .catch(err => console.error("Failed to close splashscreen:", err));
+  }
+}
+
+// Check status every 2.6 seconds (matches your original logic)
+const intervalId = setInterval(advanceStage, 600);
+</script>
+
+</body>
+</html>

@@ -1,7 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use tauri::Manager;
 #[tauri::command]
-#[tauri::command]
 async fn close_splashscreen(app: tauri::AppHandle) {
     // Close the splashscreen
     if let Some(splash_window) = app.get_webview_window("splashscreen") {

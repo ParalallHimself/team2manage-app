@@ -18,13 +18,13 @@
         "title": "NextGeTech CRM"
       },
       {
-        "label": "splashscreen",
-        "url": "/splash.html",
+        "label": "login",  
+        "url": "/login.html", 
         "decorations": false,
         "center": true,
-        "width": 920,
-        "height": 520,
-        "alwaysOnTop": true
+        "width": 450, 
+        "height": 600,
+        "visible": true
       }
     ],
     "security": {

@@ -3,7 +3,7 @@ use tauri::Manager;
 #[tauri::command]
 async fn close_splashscreen(app: tauri::AppHandle) {
     // Close the splashscreen
-    if let Some(splash_window) = app.get_webview_window("splashscreen") {
+    if let Some(splash_window) = app.get_webview_window("login") {
         splash_window.close().unwrap();
     }
     // Show the main window
